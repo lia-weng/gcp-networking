@@ -1,6 +1,6 @@
-# GCP Internal Load Balancer with Frontend & Backend
+# GCP Internal Load Balancer Demo
 
-This Terraform project deploys a multi-tier web application on Google Cloud Platform, demonstrating an internal HTTP load balancer connecting frontend and backend VMs across separate VPC networks.
+This Terraform project demonstrates an internal HTTP load balancer on Google Cloud Platform, distributing traffic between backend VMs across separate VPC networks.
 
 ## Architecture
 
@@ -12,11 +12,11 @@ Internet → Frontend VM (public IP) → Internal Load Balancer → Backend VM1 
 
 **What it creates:**
 
-- 2 backend VMs running Flask apps in `vpc-be`
-- 1 frontend VM running Flask app in `vpc-fe` (with public IP)
+- 2 backend VMs running Apache web servers in `vpc-be`
+- 1 frontend VM in `vpc-fe` (with public IP for SSH access)
 - Internal HTTP Load Balancer (Layer 7) distributing traffic to backend VMs
 - VPC peering connecting frontend and backend networks
-- Firewall rules, subnets, and health checks
+- Simple test script to demonstrate load balancing
 
 ## Prerequisites
 
@@ -55,8 +55,6 @@ provider "google" {
 
 Replace `YOUR_PROJECT_ID` with your actual GCP project ID.
 
-### 3. Deploy Infrastructure
-
 ```bash
 # Initialize Terraform
 terraform init
@@ -68,52 +66,59 @@ terraform plan
 terraform apply
 ```
 
-Type `yes` when prompted.
-
-## Access the Application
-
-After deployment, Terraform will output:
-
-```
-frontend_external_ip = "34.123.45.67"
-load_balancer_ip = "10.0.1.5"
-```
-
-**Access the frontend:**
-
-```
-http://<frontend_external_ip>
-```
-
-Click the button on the webpage to make requests through the internal load balancer to the backend VMs. You'll see responses alternating between `vm-be1` and `vm-be2`.
-
-## Testing
-
-### Test from command line:
+### 3. Deploy Infrastructure
 
 ```bash
-# Get the frontend external IP
-FRONTEND_IP=$(terraform output -raw frontend_external_ip)
+# Initialize Terraform
+terraform init
 
-# Access the frontend
-curl http://$FRONTEND_IP
+# Preview changes
+terraform plan
 
-# SSH into frontend and test load balancer
-gcloud compute ssh vm-fe --zone=us-central1-a
-curl http://$(terraform output -raw load_balancer_ip)
+# Deploy (takes 3-5 minutes)
+terraform apply
 ```
 
-### Verify load balancing:
+Type `yes` when prompted.
+
+## Test the Load Balancer
+
+After deployment completes, Terraform will show you instructions. Here's how to test:
+
+### Method 1: Use the automated test script
+
+```bash
+# SSH into the frontend VM
+gcloud compute ssh vm-fe --zone=us-central1-a
+
+# Run the test script
+sudo /root/test-lb.sh
+```
+
+You'll see 10 requests going through the load balancer, with responses alternating between `vm-be1` and `vm-be2`.
+
+### Method 2: Manual testing
 
 ```bash
 # SSH into frontend VM
 gcloud compute ssh vm-fe --zone=us-central1-a
 
-# Make multiple requests - see different backend VMs respond
+# Get the load balancer IP from Terraform output
+# Then make multiple requests
 for i in {1..10}; do
   curl http://<load_balancer_ip>
   echo ""
 done
+```
+
+**Expected output:**
+
+```
+<h1>Backend Server: vm-be1</h1>
+<h1>Backend Server: vm-be2</h1>
+<h1>Backend Server: vm-be1</h1>
+<h1>Backend Server: vm-be2</h1>
+...
 ```
 
 ## Clean Up
@@ -128,10 +133,10 @@ Type `yes` to confirm.
 
 ## How It Works
 
-1. **Frontend VM** has a public IP accessible from the internet
+1. **Backend VMs** run Apache web servers showing their hostname
 2. **VPC Peering** allows frontend VM to communicate with backend network
-3. **Frontend** makes HTTP requests to the **Internal Load Balancer** IP
-4. **Load Balancer** distributes requests between the two backend VMs
-5. **Backend VMs** respond with their hostname, showing load balancing in action
+3. **Frontend VM** makes HTTP requests to the **Internal Load Balancer** IP
+4. **Load Balancer** distributes requests between vm-be1 and vm-be2
+5. **Each response** shows which backend VM handled the request
 
-The internal load balancer is Layer 7 (HTTP-aware) and only accessible from within the VPC networks, not from the internet.
+The internal load balancer is Layer 7 (HTTP-aware) and only accessible from within the VPC networks.
