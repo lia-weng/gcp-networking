@@ -51,17 +51,6 @@ provider "google" {
 
 Replace `YOUR_PROJECT_ID` with your actual GCP project ID.
 
-```bash
-# Initialize Terraform
-terraform init
-
-# Preview changes
-terraform plan
-
-# Deploy (takes 5-10 minutes)
-terraform apply
-```
-
 ### 3. Deploy Infrastructure
 
 ```bash
