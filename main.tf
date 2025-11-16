@@ -37,6 +37,23 @@ resource "google_compute_firewall" "fw-be" {
   source_ranges = ["0.0.0.0/0"]
 }
 
+# Cloud router for NAT
+resource "google_compute_router" "nat-router" {
+  name    = "nat-router"
+  network = google_compute_network.vpc-be.name
+  region  = "us-central1"
+}
+
+# Cloud NAT configuration
+resource "google_compute_router_nat" "nat-config" {
+  name   = "nat-config"
+  router = google_compute_router.nat-router.name
+  region = "us-central1"
+
+  nat_ip_allocate_option               = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat   = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+}
+
 // proxy-only subnet (required for internal load balancer)
 resource "google_compute_subnetwork" "sub-proxy1" {
   name          = "sub-proxy1"
@@ -76,8 +93,8 @@ resource "google_compute_instance" "vm-be1" {
   metadata = {
     startup-script = <<-EOF
       #!/bin/bash
-      apt-get update
-      apt-get install -y apache2
+      sudo apt-get update -y
+      sudo apt-get install -y apache2
       HOSTNAME=$(hostname)
       echo "<h1>Backend Server: $HOSTNAME</h1>" > /var/www/html/index.html
       systemctl restart apache2
@@ -106,8 +123,8 @@ resource "google_compute_instance" "vm-be2" {
   metadata = {
     startup-script = <<-EOF
       #!/bin/bash
-      apt-get update
-      apt-get install -y apache2
+      sudo apt-get update -y
+      sudo apt-get install -y apache2
       HOSTNAME=$(hostname)
       echo "<h1>Backend Server: $HOSTNAME</h1>" > /var/www/html/index.html
       systemctl restart apache2

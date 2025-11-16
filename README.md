@@ -4,11 +4,7 @@ This Terraform project demonstrates an internal HTTP load balancer on Google Clo
 
 ## Architecture
 
-```
-Internet → Frontend VM (public IP) → Internal Load Balancer → Backend VM1 & VM2
-           (vpc-fe)                    (vpc-be)                (vpc-be)
-                 \________________VPC Peering________________/
-```
+![Architecture Diagram](diagram.jpg)
 
 **What it creates:**
 
@@ -85,8 +81,6 @@ Type `yes` when prompted.
 
 After deployment completes, Terraform will show you instructions. Here's how to test:
 
-### Method 1: Use the automated test script
-
 ```bash
 # SSH into the frontend VM
 gcloud compute ssh vm-fe --zone=us-central1-a
@@ -97,29 +91,7 @@ sudo /root/test-lb.sh
 
 You'll see 10 requests going through the load balancer, with responses alternating between `vm-be1` and `vm-be2`.
 
-### Method 2: Manual testing
-
-```bash
-# SSH into frontend VM
-gcloud compute ssh vm-fe --zone=us-central1-a
-
-# Get the load balancer IP from Terraform output
-# Then make multiple requests
-for i in {1..10}; do
-  curl http://<load_balancer_ip>
-  echo ""
-done
-```
-
-**Expected output:**
-
-```
-<h1>Backend Server: vm-be1</h1>
-<h1>Backend Server: vm-be2</h1>
-<h1>Backend Server: vm-be1</h1>
-<h1>Backend Server: vm-be2</h1>
-...
-```
+![Expected Output](results.jpg)
 
 ## Clean Up
 
